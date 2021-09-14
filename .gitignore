@@ -101,6 +101,11 @@ fabric.properties
 # .idea/misc.xml
 # *.ipr
 
+### macOS ###
+# General
+.DS_Store
+.AppleDouble
+.LSOverride
 .idea
 
 # Sonarlint plugin
