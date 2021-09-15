@@ -30,7 +30,7 @@ class ChessBoard(object):
         self.current_player = GAME_PLAYER.PLAYER_ONE
         self.steps = []
 
-    def move(self, player: GAME_PLAYER, mv_row: int, mv_col: int) -> Tuple[int, Optional[GAME_PLAYER]]:
+    def move(self, mv_row: int, mv_col: int) -> Tuple[int, Optional[GAME_PLAYER]]:
         """
         :return: status, winner
         status: -1: move failed; 0: move succeed and game go on; 1: move succeed and return winner; 2: move succeed and
@@ -41,9 +41,6 @@ class ChessBoard(object):
             return -1, None
         if self.board[mv_row, mv_col] != GAME_PLAYER.EMPTY:
             logger.error(f'board already has a chess in {mv_row, mv_col}')
-            return -1, None
-        if player != self.current_player:
-            logger.error(f'move player {player} is not same as current_play {self.current_player}')
             return -1, None
         self.last_move = (mv_row, mv_col)
         self.steps.append((mv_row, mv_col))

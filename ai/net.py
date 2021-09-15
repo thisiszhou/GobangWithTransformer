@@ -1,4 +1,3 @@
-import torch
 from torch import nn
 
 
@@ -27,7 +26,9 @@ class Net(nn.Module):
         self.softmax = nn.Softmax(dim=-1)
 
     def forward(self, state):
-        # state: (N, 3, row, col)
+        # state: [N, 3, row, col]
+        # return: act: [N, row, col], value: [N, 1]
+
         x = self.relu(self.conv1(state))
         x = self.relu(self.conv2(x))
         x = self.relu(self.conv3(x))
