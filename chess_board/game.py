@@ -39,7 +39,7 @@ class Map():
         if turn == GAME_PLAYER.PLAYER_ONE:
             return GAME_PLAYER.PLAYER_TWO
         else:
-            return MAP_ENTRY_TYPE.MAP_PLAYER_ONE
+            return GAME_PLAYER.MAP_PLAYER_ONE
     #获取地图中可以下棋的单元
     def getMapUnitRect(self, x, y):
         map_x = x * REC_SIZE
@@ -175,7 +175,7 @@ class GiveupButton(Button):
         if self.enable:
             game.is_play = False
             if game.winner is None:
-                game.winner = game.map.reverseTurn(game.player)
+                game.winner = game.chessboard.reverse_player()
             self.msg_image = self.font.render(self.text, True, self.text_color, self.button_color[1])
             self.enable = False
             return True
@@ -187,7 +187,7 @@ class GiveupButton(Button):
             self.enable = True
 
 
-class VisualGame(object):
+class Game(object):
     def __init__(self,
                  play1,
                  play2,
@@ -196,30 +196,35 @@ class VisualGame(object):
                  bg_side_file,
                  play1_win_file,
                  play2_win_file,
+                 show_board=True,
                  caption='Five Chess'):
-        pygame.init()
-        self.screen = pygame.display.set_mode([SCREEN_WIDTH, SCREEN_HEIGHT])
-        pygame.display.set_caption(caption)
-        self.clock = pygame.time.Clock()
-        self.buttons = [
-            StartButton(self.screen, 'start', MAP_WIDTH + 30, 15),
-            GiveupButton(self.screen, 'surrend', MAP_WIDTH + 30, BUTTON_HEIGHT + 45)
-        ]
+        self.players = {"one": play1, "two": play2}
+        self.current_player = None
         self.is_play = False
         self.chessboard = ChessBoard(CHESS_LEN, CHESS_LEN, goal_chess_num)
         self.action = None
         self.winner = None
-
-        # background
-        self.bg_main = pygame.image.load(bg_main_file)
-        self.bg_side = pygame.image.load(bg_side_file)
-        self.play1_win = pygame.image.load(play1_win_file)
-        self.play2_win = pygame.image.load(play2_win_file)
+        self.debug_show = True
+        self.show_board = show_board
+        if show_board:
+            pygame.init()
+            self.screen = pygame.display.set_mode([SCREEN_WIDTH, SCREEN_HEIGHT])
+            pygame.display.set_caption(caption)
+            self.clock = pygame.time.Clock()
+            self.buttons = [
+                StartButton(self.screen, 'start', MAP_WIDTH + 30, 15),
+                GiveupButton(self.screen, 'surrend', MAP_WIDTH + 30, BUTTON_HEIGHT + 45)
+            ]
+            # background
+            self.bg_main = pygame.image.load(bg_main_file)
+            self.bg_side = pygame.image.load(bg_side_file)
+            self.play1_win = pygame.image.load(play1_win_file)
+            self.play2_win = pygame.image.load(play2_win_file)
 
     def start(self):
         self.is_play = True
         self.chessboard.reset()
-        self.player = self.chessboard.current_player
+        self.current_player = self.chessboard.current_player
 
     def play(self):
         self.clock.tick(600)
@@ -250,11 +255,12 @@ class VisualGame(object):
             pygame.mouse.set_visible(True)
 
     def checkClick(self, x, y, isAI=False):
-        status, winner = self.chessboard.move(self.player, y, x)
+        status, winner = self.chessboard.move(y, x)
         if status == -1:
             raise ValueError("status is -1")
         if status == 0:
             self.player = self.chessboard.current_player
+            self.debug_show = True
         else:
             self.winner = winner
             self.click_button(self.buttons[1])
@@ -274,7 +280,7 @@ class VisualGame(object):
             if self.winner == GAME_PLAYER.PLAYER_ONE:
                 screen.blit(self.play1_win, (MAP_WIDTH + 25, SCREEN_HEIGHT-200))
             else:
-                screen.blit(self.play1_win, (MAP_WIDTH + 25, SCREEN_HEIGHT-200))
+                screen.blit(self.play2_win, (MAP_WIDTH + 25, SCREEN_HEIGHT-200))
         showPIC(self.screen)
         pygame.mouse.set_visible(True)
 
@@ -331,32 +337,33 @@ class VisualGame(object):
     def draw_chess(self):
         player_one = (10, 10, 10) # 颜色rgb
         player_two = (255, 251, 240)
-        player_color = [player_one, player_two]
-
+        player_color = {"one": player_one, "two": player_two}
         font = pygame.font.SysFont('simsunnsimsun', REC_SIZE * 2 // 3) # 棋盘表面
         steps = self.chessboard.get_steps()
         for i in range(len(steps)):
             r, c = steps[i]  # 步长
             map_x, map_y, width, height = self.getMapUnitRect(c, r)  # 棋盘上能下棋的位置
             pos, radius = (map_x + width // 2, map_y + height // 2), CHESS_RADIUS  # 棋子半径
-            turn = self.chessboard.get_chess_value(r, c)
-            if turn == GAME_PLAYER.PLAYER_ONE:
-                op_turn = GAME_PLAYER.PLAYER_TWO
+            current_player = self.chessboard.get_chess_value(r, c)
+            if current_player == GAME_PLAYER.PLAYER_ONE:
+                turn = "one"
+                op_turn = "two"
             else:
-                op_turn = GAME_PLAYER.PLAYER_ONE
-            pygame.draw.circle(self.screen, player_color[turn - 1], pos, radius)  # 画出圈
-            msg_image = font.render(str(i), True, player_color[op_turn - 1], player_color[turn - 1])  # 双方的棋子
+                turn = "two"
+                op_turn = "one"
+            pygame.draw.circle(self.screen, player_color[turn], pos, radius)  # 画出圈
+            msg_image = font.render(str(i), True, player_color[op_turn], player_color[turn])  # 双方的棋子
             msg_image_rect = msg_image.get_rect()  # 棋子反应
             msg_image_rect.center = pos  # 棋子中心
             self.screen.blit(msg_image, msg_image_rect)  # 屏幕刷新
-
-        if len(steps) > 0:
-            last_pos = steps[-1]
-            map_x, map_y, width, height = self.getMapUnitRect(last_pos[1], last_pos[0])
-            purple_color = (0, 0, 255)
-            point_list = [(map_x, map_y), (map_x + width, map_y),
-                          (map_x + width, map_y + height), (map_x, map_y + height)]
-            pygame.draw.lines(self.screen, purple_color, True, point_list, 1)
+        self.debug_show = False
+        # if len(steps) > 0:
+        #     last_pos = steps[-1]
+        #     map_x, map_y, width, height = self.getMapUnitRect(last_pos[1], last_pos[0])
+        #     purple_color = (0, 0, 255)
+        #     point_list = [(map_x, map_y), (map_x + width, map_y),
+        #                   (map_x + width, map_y + height), (map_x, map_y + height)]
+        #     pygame.draw.lines(self.screen, purple_color, True, point_list, 1)
 
     # 获取地图中可以下棋的单元
     def getMapUnitRect(self, x, y):

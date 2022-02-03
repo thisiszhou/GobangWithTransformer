@@ -103,6 +103,8 @@ class ChessBoard(object):
             self.current_player = GAME_PLAYER.PLAYER_TWO
         else:
             self.current_player = GAME_PLAYER.PLAYER_ONE
+        print("self.current_player:", self.current_player)
+        return self.current_player
 
     def shape(self):
         return self.board.shape

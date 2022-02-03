@@ -1,10 +1,11 @@
-from chess_board.visual_game import VisualGame
+from chess_board.game import Game
 import pygame
 from loguru import logger
 
 
-game = VisualGame(1, 1, 4, "bgmain.jpg", "bgbian.jpg", "bg_picture/manwin.jpg", "bg_picture/comwin.jpg")
+game = Game(None, None, 5, "bg_picture/bgmain.jpg", "bg_picture/bgbian.jpg", "bg_picture/manwin.jpg", "bg_picture/comwin.jpg")
 while True:
+    print("in play")
     game.play()
     pygame.display.update()
     for event in pygame.event.get():
