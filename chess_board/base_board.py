@@ -2,6 +2,7 @@ import numpy as np
 from chess_board.cons import GAME_PLAYER
 from typing import Optional, Tuple
 from loguru import logger
+import copy
 
 
 class ChessBoard(object):
@@ -19,9 +20,16 @@ class ChessBoard(object):
 
         # status variable
         self.current_player = GAME_PLAYER.EMPTY
-        self.last_move = None
+        self.last_oppo_move = None
+        self.current_move = None
         self.game_end = True
         self.reset()
+
+        self.winner = None
+        # variables for transformer
+        self.last_ten_board = np.array([np.zeros((row, col)) for _ in range(4)], dtype=np.float)
+        self.last_five_current_board = np.array([np.zeros((row, col), dtype=int) for _ in range(2)], dtype=np.float)
+        self.last_five_opposite_board = np.array([np.zeros((row, col), dtype=int) for _ in range(2)], dtype=np.float)
 
     def reset(self):
         self.board[...] = GAME_PLAYER.EMPTY
@@ -42,8 +50,7 @@ class ChessBoard(object):
         if self.board[mv_row, mv_col] != GAME_PLAYER.EMPTY:
             logger.error(f'board already has a chess in {mv_row, mv_col}')
             return -1, None
-        self.last_move = (mv_row, mv_col)
-        self.steps.append((mv_row, mv_col))
+        self.update_last_ten_step(mv_row, mv_col)
         self.board[mv_row, mv_col] = self.current_player
         has_winner = self.is_current_player_winner()
         if has_winner == 0:
@@ -51,11 +58,38 @@ class ChessBoard(object):
             return 0, None
         else:
             self.game_end = True
-            return has_winner, None if has_winner == 2 else self.current_player
+            self.winner = GAME_PLAYER.PLAYER_TWO if has_winner == 2 else self.current_player
+            return has_winner, self.winner
+
+    def update_last_ten_step(self, r, c):
+        self.current_move = r, c
+        self.steps.append(self.current_move)
+        # update last ten
+        self.last_ten_board[:-1] = -self.last_ten_board[1:]
+        tmp_board = np.array(self.board, dtype=np.float)
+        tmp_board[tmp_board == self.current_player] = 100
+        tmp_board[tmp_board == -self.current_player] = -100
+        tmp_board /= 100
+        self.last_ten_board[-1] = tmp_board
+
+        # update last five
+        self.last_five_current_board, self.last_five_opposite_board = -self.last_five_opposite_board, -self.last_five_current_board
+        # update last five opposite
+        oppo_tmp = np.zeros((self.row, self.col), dtype=int)
+        if self.last_move is not None:
+            oppo_tmp[self.last_move] = -1
+        self.last_five_opposite_board[:-1] = self.last_five_opposite_board[1:]
+        self.last_five_opposite_board[-1] = oppo_tmp
+        self.last_move = self.current_move
+        # update end
+
+    def get_last_ten_step_output(self):
+        label = None if self.winner is None else 1
+        return np.array(self.last_ten_board), np.array(self.last_five_current_board), np.array(self.last_five_opposite_board), self.current_move, label
 
     def is_current_player_winner(self) -> int:
         """
-        :param board_map: 棋盘，0为空位置，1，2分别对应玩家1，2下的棋子
+        :param board_map: 棋盘，0为空位置，1，-1分别对应玩家1，2下的棋子
         :param player_value: 当前玩家下棋标记value
         :return: 是否已经获胜 0: 未获胜 1: 获胜 2: 平局
         """
@@ -103,7 +137,6 @@ class ChessBoard(object):
             self.current_player = GAME_PLAYER.PLAYER_TWO
         else:
             self.current_player = GAME_PLAYER.PLAYER_ONE
-        print("self.current_player:", self.current_player)
         return self.current_player
 
     def shape(self):
