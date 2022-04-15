@@ -2,22 +2,24 @@ import pygame
 # from pygame.locals import *
 from chess_board.base_board import ChessBoard
 from chess_board.cons import GAME_PLAYER
+import numpy as np
+from loguru import logger
+from collections import defaultdict
 import time
 
-
 # 定义游戏棋盘的参数
-REC_SIZE = 50#棋子移动空间的大小
+REC_SIZE = 50  # 棋子移动空间的大小
 CHESS_RADIUS = REC_SIZE // 2 - 2
-CHESS_LEN = 8#棋子长度
-MAP_WIDTH = CHESS_LEN * REC_SIZE#地图宽度
-MAP_HEIGHT = CHESS_LEN * REC_SIZE#地图高度
-INFO_WIDTH = 200#信息宽度
-BUTTON_WIDTH = 140#按钮宽度
-BUTTON_HEIGHT = 50#按钮高度
-SCREEN_WIDTH = MAP_WIDTH + INFO_WIDTH#屏幕宽度
-SCREEN_HEIGHT = MAP_HEIGHT#屏幕高度
-SEARCH_DEPTH = 5       #搜索深度5
-LIMITED_MOVE_NUM = 10   #限制步数10
+CHESS_LEN = 15  # 棋盘长度
+MAP_WIDTH = CHESS_LEN * REC_SIZE  # 地图宽度
+MAP_HEIGHT = CHESS_LEN * REC_SIZE  # 地图高度
+INFO_WIDTH = 200  # 信息宽度
+BUTTON_WIDTH = 140  # 按钮宽度
+BUTTON_HEIGHT = 50  # 按钮高度
+SCREEN_WIDTH = MAP_WIDTH + INFO_WIDTH  # 屏幕宽度
+SCREEN_HEIGHT = MAP_HEIGHT  # 屏幕高度
+SEARCH_DEPTH = 5  # 搜索深度5
+LIMITED_MOVE_NUM = 10  # 限制步数10
 
 
 class Game(object):
@@ -30,7 +32,8 @@ class Game(object):
                  play1_win_file,
                  play2_win_file,
                  show_board=True,
-                 caption='Five Chess'):
+                 caption='Five Chess',
+                 collect_train_data=False):
         """
         :param play1: method or str "human"
         :param play2: method or str "human"
@@ -48,12 +51,13 @@ class Game(object):
             play1 = self.human_play
         if play2 == "human":
             play2 = self.human_play
-        self.players = {1: play1, -1: play2}
+        self.player_method = {1: play1, -1: play2}
         self.current_player = None
         self.is_play = False
         self.chessboard = ChessBoard(CHESS_LEN, CHESS_LEN, goal_chess_num)
         self.action = None
         self.winner = None
+        self.epoch = -1
         self.debug_show = True
         self.show_board = show_board
         if show_board:
@@ -70,11 +74,33 @@ class Game(object):
             self.bg_side = pygame.image.load(bg_side_file)
             self.play1_win = pygame.image.load(play1_win_file)
             self.play2_win = pygame.image.load(play2_win_file)
+        self.collect_train_data = collect_train_data
+        self.board = []
+        self.me = []
+        self.oppo = []
+        self.step = []
+        self.label = []
+        self.weight = []
 
     def start(self):
         self.is_play = True
+        self.epoch += 1
+        self.winner = None
         self.chessboard.reset()
         self.current_player = self.chessboard.current_player
+
+        # collect data
+        self.board = []
+        self.me = []
+        self.oppo = []
+        self.step = []
+        self.label = []
+
+        if self.show_board:
+            print("first:", self.player_method)
+
+    def change_player_agent(self):
+        self.player_method = {1: self.player_method[-1], -1: self.player_method[1]}
 
     def show_fps(self, fps):
         self.clock.tick(fps)
@@ -82,15 +108,18 @@ class Game(object):
         self.screen.blit(self.bg_side, (MAP_WIDTH, 0))
         for button in self.buttons.values():
             button.draw()
-        if not self.isOver():
+        if not self.is_over():
             self.changeMouseShow()
-        if self.isOver():
+        if self.is_over():
             self.showWinner()
         self.draw_background()
         self.draw_chess()
         pygame.display.update()
 
     def human_play(self, chessboard):
+        win_step = chessboard.search_current_player_certain_step()
+        if len(win_step) > 0:
+            print("win_step:", win_step, "self.current player:", chessboard.current_player)
         action = None
         while action is None:
             self.show_fps(60)
@@ -104,10 +133,24 @@ class Game(object):
                     self.check_buttons(mouse_x, mouse_y)
         return action[::-1]
 
-    def play(self):
+    def play(self, train_agent=None, train_epoch=None, show_loss_step=None, save_model_step=None, save_model_file=None,
+             wait=0.):
+        """
+        :return: board, me, oppo, step, label
+        board: [step, last_steps, board_size, board_size]
+        me: [step, half last_steps, board_size, board_size]
+        oppo: [step, half last_steps, board_size, board_size]
+        step: [step, 2]
+        label: [step, 1]
+        """
+        epoch = 0
+        total_loss = -1.
+        winner_num = [0, 0]
+        player_num = defaultdict(int)
         while True:
+            # 手动控制开始对局
             if self.show_board:
-                self.show_fps(60)
+                self.show_fps(600)
                 for event in pygame.event.get():
                     if event.type == pygame.QUIT:
                         pygame.quit()
@@ -115,14 +158,70 @@ class Game(object):
                     elif event.type == pygame.MOUSEBUTTONDOWN:
                         mouse_x, mouse_y = pygame.mouse.get_pos()
                         self.check_buttons(mouse_x, mouse_y)
-            if not self.isOver():
+            # 自动控制开始对局
+            elif not self.is_playing():
+                self.start()
+
+            if self.is_playing() and not self.is_over():
+                if wait > 0:
+                    time.sleep(wait)
                 current_player = self.chessboard.current_player
-                action = self.players[current_player](self.chessboard)
+                action = self.player_method[current_player](self.chessboard)
                 self.move(*action)
-                print("action:", action)
-                print("-"*20)
-                print(self.chessboard.get_last_ten_step_output())
-                print("-" * 20)
+                if self.collect_train_data:
+                    self.update_train_data()
+            if self.is_over():
+                if self.show_board:
+                    self.click_button(self.buttons['surrend'])
+                if train_agent is not None and self.epoch == epoch:
+                    player_num[str(self.player_method[self.winner])] += 1
+                    if self.winner is GAME_PLAYER.PLAYER_ONE:
+                        winner_num[0] += 1
+                    else:
+                        winner_num[1] += 1
+                    if epoch < train_epoch:
+                        # print("len:", len(self.get_train_data()[0]))
+                        loss = train_agent.train(self.get_train_data())
+                        self.change_player_agent()
+                        epoch += 1
+                        if total_loss < 0:
+                            total_loss = loss
+                        else:
+                            total_loss = total_loss * 0.95 + loss * 0.05
+                        if (epoch + 1) % show_loss_step == 0:
+                            logger.info(f"Train epoch: {epoch}, loss: {total_loss}, winner times: {winner_num}, "
+                                        f"player_num: {player_num}")
+                        if (epoch + 1) % save_model_step == 0:
+                            train_agent.save_model(save_model_file)
+                    else:
+                        break
+                if train_agent is None and not self.show_board:
+                    break
+        return self.get_train_data()
+
+    def update_train_data(self):
+        board, me, oppo, step, winner = self.chessboard.get_last_train_window_output()
+        # print("-"*20 + "train" + "-"*20)
+        # print(board)
+        # print(me)
+        # print(oppo)
+        # print("-"*20 + "train" + "-"*20)
+        self.board.append(board)
+        self.me.append(me)
+        self.oppo.append(oppo)
+        self.step.append(step)
+        if winner is not None:
+            length = len(self.board)
+            win_length = int(length / 2 + length % 2)
+            lose_length = int(length / 2)
+            self.label = np.zeros((length, 1), dtype=np.float)
+            self.weight = np.zeros((length, 1), dtype=np.float)
+            self.label[1 - length % 2::2, 0] = 1
+            self.weight[1 - length % 2::2, 0] = np.array([0.5 + x / (win_length * 2) for x in range(1, win_length + 1)])
+            self.weight[length % 2::2, 0] = 1 / lose_length
+
+    def get_train_data(self):
+        return self.board, self.me, self.oppo, self.step, self.label, self.weight
 
     def changeMouseShow(self):
         map_x, map_y = pygame.mouse.get_pos()
@@ -144,28 +243,33 @@ class Game(object):
             self.debug_show = True
         elif status == 2:
             self.winner = GAME_PLAYER.PLAYER_TWO
+            self.is_play = False
         else:
             self.winner = winner
-            self.click_button(self.buttons['surrend'])
+            self.is_play = False
 
-#处理鼠标输入
+    # 处理鼠标输入
     def mouseClick(self, map_x, map_y, chessboard: ChessBoard):
-        if self.is_play and self.isInMap(map_x, map_y) and not self.isOver():
+        if self.is_play and self.isInMap(map_x, map_y) and not self.is_over():
             x, y = self.MapPosToIndex(map_x, map_y)
             if chessboard.is_empty(y, x):
                 return x, y
             else:
                 return None
 
-    def isOver(self):
+    def is_over(self):
         return self.winner is not None
+
+    def is_playing(self):
+        return self.is_play
 
     def showWinner(self):
         def showPIC(screen):
             if self.winner == GAME_PLAYER.PLAYER_ONE:
-                screen.blit(self.play1_win, (MAP_WIDTH + 25, SCREEN_HEIGHT-200))
+                screen.blit(self.play1_win, (MAP_WIDTH + 25, SCREEN_HEIGHT - 200))
             else:
-                screen.blit(self.play2_win, (MAP_WIDTH + 25, SCREEN_HEIGHT-200))
+                screen.blit(self.play2_win, (MAP_WIDTH + 25, SCREEN_HEIGHT - 200))
+
         showPIC(self.screen)
         pygame.mouse.set_visible(True)
 
@@ -220,10 +324,10 @@ class Game(object):
             )
 
     def draw_chess(self):
-        player_one = (10, 10, 10) # 颜色rgb
+        player_one = (10, 10, 10)  # 颜色rgb
         player_two = (255, 251, 240)
         player_color = {"one": player_one, "two": player_two}
-        font = pygame.font.SysFont('simsunnsimsun', REC_SIZE * 2 // 3) # 棋盘表面
+        font = pygame.font.SysFont('simsunnsimsun', REC_SIZE * 2 // 3)  # 棋盘表面
         steps = self.chessboard.get_steps()
         for i in range(len(steps)):
             r, c = steps[i]  # 步长
@@ -302,12 +406,11 @@ class Button(object):
 
 class StartButton(Button):
     def __init__(self, screen, text, x, y):
-        super().__init__(screen, text, x, y, [(107,194,53),(174, 221, 129)], True)
+        super().__init__(screen, text, x, y, [(107, 194, 53), (174, 221, 129)], True)
 
     def click(self, game):
         if self.enable:
             game.start()
-            game.winner = None
             self.msg_image = self.font.render(self.text, True, self.text_color, self.button_color[1])
             self.enable = False
             return True
@@ -321,13 +424,10 @@ class StartButton(Button):
 
 class GiveupButton(Button):
     def __init__(self, screen, text, x, y):
-        super().__init__(screen, text, x, y, [(254,67,101), (252,157,154)], False)
+        super().__init__(screen, text, x, y, [(254, 67, 101), (252, 157, 154)], False)
 
     def click(self, game):
         if self.enable:
-            game.is_play = False
-            if game.winner is None:
-                game.winner = game.chessboard.reverse_player()
             self.msg_image = self.font.render(self.text, True, self.text_color, self.button_color[1])
             self.enable = False
             return True
@@ -337,7 +437,3 @@ class GiveupButton(Button):
         if not self.enable:
             self.msg_image = self.font.render(self.text, True, self.text_color, self.button_color[0])
             self.enable = True
-
-
-
-
