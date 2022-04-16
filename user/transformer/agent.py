@@ -48,6 +48,7 @@ class Transformer_Gobang(object):
         if rule and len(win_step) > 0:
             map[[0 for _ in win_step], [x[0] for x in win_step], [x[1] for x in win_step]] += 10
             # print("map:", map)
+            # print("-"*20)
             # for step in win_step:
             #     print("step:", step, map[0, step[0], step[1]])
         output = np.unravel_index(map.argmax(), map.shape)

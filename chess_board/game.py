@@ -117,9 +117,9 @@ class Game(object):
         pygame.display.update()
 
     def human_play(self, chessboard):
-        win_step = chessboard.search_current_player_certain_step()
-        if len(win_step) > 0:
-            print("win_step:", win_step, "self.current player:", chessboard.current_player)
+        # win_step = chessboard.search_current_player_certain_step()
+        # if len(win_step) > 0:
+        #     print("win_step:", win_step, "self.current player:", chessboard.current_player)
         action = None
         while action is None:
             self.show_fps(60)
@@ -147,8 +147,13 @@ class Game(object):
         total_loss = -1.
         winner_num = [0, 0]
         player_num = defaultdict(int)
+        print("in ")
+        i = 0
+        print("job:", train_agent, train_epoch, show_loss_step, save_model_step, save_model_file, wait)
         while True:
             # 手动控制开始对局
+            print("i", i)
+            i += 1
             if self.show_board:
                 self.show_fps(600)
                 for event in pygame.event.get():
@@ -180,7 +185,7 @@ class Game(object):
                     else:
                         winner_num[1] += 1
                     if epoch < train_epoch:
-                        # print("len:", len(self.get_train_data()[0]))
+                        print("len:", len(self.get_train_data()[0]))
                         loss = train_agent.train(self.get_train_data())
                         self.change_player_agent()
                         epoch += 1
