@@ -13,7 +13,7 @@ MODEL_FILE_LOAD = "data/model_teacher_train.pkl"
 MODEL_FILE_SAVE = "data/model_teacher_train.pkl"
 CHESSBOARD_SIZE = 15
 SHOW_LOSS_STEP = 4
-SAVE_MODEL_STEP = 4
+SAVE_MODEL_STEP = 20
 PROCESS = 4
 EPOCH = 100000
 

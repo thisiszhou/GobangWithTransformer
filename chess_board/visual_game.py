@@ -37,10 +37,10 @@ class Displayer(object):
         pygame.display.set_caption(caption)
         self.clock = pygame.time.Clock()
         self.buttons = {
-            'start': StartButton(self.screen, 'start', self.conf.MAP_WIDTH + 30, 15, self.conf),
-            'surrend': GiveupButton(self.screen, 'surrend', self.conf.MAP_WIDTH + 30,
+            'start': StartButton(self.screen, '开始', self.conf.MAP_WIDTH + 30, 15, self.conf),
+            'surrend': GiveupButton(self.screen, '认输', self.conf.MAP_WIDTH + 30,
                                     self.conf.BUTTON_HEIGHT + 45, self.conf),
-            'change': ChangeUserButton(self.screen, 'change', self.conf.MAP_WIDTH + 30,
+            'change': ChangeUserButton(self.screen, '交换顺序', self.conf.MAP_WIDTH + 30,
                                        2 * self.conf.BUTTON_HEIGHT + 75, self.conf)
         }
         # background
