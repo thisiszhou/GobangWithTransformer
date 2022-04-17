@@ -164,6 +164,10 @@ class VisualGame(object):
             play1 = human
         if play2 is None:
             play2 = human
+        # debug
+        # play1 = human
+        # play2 = human
+
         self.game = Game(chess_size, goal_chess_num, first_random_alpha=200)
         self.game.set_player(play1["method"], play2["method"])
         self.play_name = {GAME_PLAYER.PLAYER_ONE: play1["name"],
@@ -188,9 +192,9 @@ class VisualGame(object):
         logger.info("Player has been changed!")
 
     def human_play(self, chessboard):
-        # win_step = chessboard.search_current_player_certain_step()
-        # if len(win_step) > 0:
-        #     print("win_step:", win_step, "self.current player:", chessboard.current_player)
+        win_step = chessboard.search_current_player_certain_step()
+        if len(win_step) > 0:
+            print("win_step:", win_step, "self.current player:", chessboard.current_player)
         action = None
         while action is None:
             self.displayer.show_fps(self.game.chessboard.steps, self.game.chessboard.board,
