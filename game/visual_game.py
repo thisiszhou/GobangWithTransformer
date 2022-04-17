@@ -1,5 +1,5 @@
-from chess_board.cons import GAME_PLAYER
-from chess_board.game import Game
+from game.cons import GAME_PLAYER
+from game.game import Game
 import numpy as np
 from loguru import logger
 from collections import defaultdict
@@ -16,10 +16,10 @@ class VisualChessConfig:
     BUTTON_HEIGHT = 50  # 按钮高度
     SEARCH_DEPTH = 5  # 搜索深度5
     LIMITED_MOVE_NUM = 10  # 限制步数10
-    BG_MAIN_FILE = "bg_picture/bgmain.jpg"
-    BG_SIDE_FILE = "bg_picture/bgbian.jpg"
-    PLAY1_WIN_FILE = "bg_picture/onewin.jpg"
-    PLAY2_WIN_FILE = "bg_picture/twowin.jpg"
+    BG_MAIN_FILE = "picture/bgmain.jpg"
+    BG_SIDE_FILE = "picture/bgbian.jpg"
+    PLAY1_WIN_FILE = "picture/onewin.jpg"
+    PLAY2_WIN_FILE = "picture/twowin.jpg"
 
     def __init__(self, chess_size):
         self.CHESS_LEN = chess_size
@@ -37,10 +37,10 @@ class Displayer(object):
         pygame.display.set_caption(caption)
         self.clock = pygame.time.Clock()
         self.buttons = {
-            'start': StartButton(self.screen, '开始', self.conf.MAP_WIDTH + 30, 15, self.conf),
-            'surrend': GiveupButton(self.screen, '认输', self.conf.MAP_WIDTH + 30,
+            'start': StartButton(self.screen, 'start', self.conf.MAP_WIDTH + 30, 15, self.conf),
+            'surrend': GiveupButton(self.screen, 'surrend', self.conf.MAP_WIDTH + 30,
                                     self.conf.BUTTON_HEIGHT + 45, self.conf),
-            'change': ChangeUserButton(self.screen, '交换顺序', self.conf.MAP_WIDTH + 30,
+            'change': ChangeUserButton(self.screen, 'change', self.conf.MAP_WIDTH + 30,
                                        2 * self.conf.BUTTON_HEIGHT + 75, self.conf)
         }
         # background
@@ -164,7 +164,7 @@ class VisualGame(object):
             play1 = human
         if play2 is None:
             play2 = human
-        self.game = Game(chess_size, goal_chess_num)
+        self.game = Game(chess_size, goal_chess_num, first_random_alpha=200)
         self.game.set_player(play1["method"], play2["method"])
         self.play_name = {GAME_PLAYER.PLAYER_ONE: play1["name"],
                           GAME_PLAYER.PLAYER_TWO: play2["name"]}
@@ -226,6 +226,7 @@ class VisualGame(object):
                 winner_name = self.play_name.get(self.game.winner)
                 if len(self.train_data) > 0 and self.train and winner_name != "agent" and agent is not None:
                     loss = agent.train(self.train_data)
+                    print("model_file:", model_file, "agent:", model_file)
                     agent.save_model(model_file)
                     logger.info(f"finished train, loss: {loss}")
                 self.train_data = []

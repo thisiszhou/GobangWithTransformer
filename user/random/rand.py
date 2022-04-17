@@ -1,4 +1,4 @@
-from chess_board.base_board import ChessBoard
+from game.base_board import ChessBoard
 import random
 
 

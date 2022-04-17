@@ -1,5 +1,5 @@
-from chess_board.base_board import ChessBoard
-from chess_board.cons import GAME_PLAYER
+from game.base_board import ChessBoard
+from game.cons import GAME_PLAYER
 import numpy as np
 import multitasking
 from loguru import logger
@@ -11,12 +11,13 @@ class Game(object):
     def __init__(self,
                  chess_size,
                  goal_chess_num=5,
-                 collect_train_data=True
+                 collect_train_data=True,
+                 first_random_alpha=10
                  ):
         self.player_method = dict()
         self.current_player = None
         self.is_play = False
-        self.chessboard = ChessBoard(chess_size, chess_size, goal_chess_num)
+        self.chessboard = ChessBoard(chess_size, chess_size, goal_chess_num, random_alpha=first_random_alpha)
         self.action = None
         self.winner = None
         self.epoch = -1

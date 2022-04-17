@@ -1,7 +1,7 @@
 import os
 import sys
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from chess_board.game import Game
+from game.game import Game
 from user.transformer.agent import Transformer_Gobang
 from user.beta.agent import ChessAI
 from loguru import logger

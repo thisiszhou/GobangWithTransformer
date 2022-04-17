@@ -1,5 +1,5 @@
 import numpy as np
-from chess_board.cons import GAME_PLAYER
+from game.cons import GAME_PLAYER
 from typing import Optional, Tuple, List
 from loguru import logger
 import random
@@ -10,12 +10,13 @@ Debug = False
 
 
 class ChessBoard(object):
-    def __init__(self, row: int, col: int, goal_chess_num: int = 5):
+    def __init__(self, row: int, col: int, goal_chess_num: int = 5, random_alpha=10):
         """
         :param row:  row of chess board
         :param col:  col of chess board
         """
         assert row >= goal_chess_num and col >= goal_chess_num
+        self.alpha = random_alpha
         self.row = row
         self.col = col
         self.goal_chess_num = goal_chess_num
@@ -81,8 +82,8 @@ class ChessBoard(object):
         return self.empty_board
 
     def get_random_first_step(self):
-        row = random.betavariate(10,10) * self.row
-        col = random.betavariate(10,10) * self.col
+        row = random.betavariate(self.alpha, self.alpha) * self.row
+        col = random.betavariate(self.alpha, self.alpha) * self.col
         return int(round(row)), int(round(col))
 
     def update_last_window_step(self, r, c):

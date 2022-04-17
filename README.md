@@ -7,7 +7,7 @@
 用Transformer(基于pytorch实现)下五子棋，训练的时候使用另一个剪枝算法和Transformer进行对战，期间Transformer的胜率由4%上升至60%以上。训练当前仅支持cpu(支持多进程训练)，从零训练1万盘对局接近收敛，可下载训练好的权重进行尝试.
 
 <div align="center">
-  <img src="data/gobang_demo.jpg" width="800" />
+  <img src="picture/gobang_demo.jpg" width="800" />
 </div>
 
 ****************
