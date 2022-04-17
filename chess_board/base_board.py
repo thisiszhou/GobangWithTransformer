@@ -6,6 +6,9 @@ import random
 import copy
 
 
+Debug = False
+
+
 class ChessBoard(object):
     def __init__(self, row: int, col: int, goal_chess_num: int = 5):
         """
@@ -139,37 +142,50 @@ class ChessBoard(object):
         # 1查看自己是否会获胜
         _, next_steps = self.is_player_winner(self.current_player, self.board, self.goal_chess_num - 1)
         if len(next_steps) > 0:
+            if Debug:
+                print("certain_step1")
             return next_steps
         # 2查看对手是否会马上获胜
         _, next_steps = self.is_player_winner(self.oppo_player, self.board, self.goal_chess_num - 1)
         if len(next_steps) > 0:
+            if Debug:
+                print("certain_step2")
             return next_steps
         # 3查看自己是否有冲四
         next_steps = self.search_player_livefour_step(self.board, self.current_player, self.oppo_player)
         if len(next_steps) > 0:
+            if Debug:
+                print("certain_step3")
             return next_steps
         # 4查看对手是否有冲四、以及自己是否有冲五
         next_steps = self.search_player_livefour_step(self.board, self.oppo_player, self.current_player)
         if len(next_steps) > 0:
             next_steps2 = self.search_player_one_side_four_step(self.board, self.current_player, self.oppo_player)
+            if Debug:
+                print("next1", next_steps, "next2", next_steps2)
+                print("certain_step4")
             return list(set(next_steps + next_steps2))
         return []
 
-    def check_board_livethree(self, check_board, player, oppo) -> Optional[int]:
+    def check_board_livethree(self, check_board, player, oppo) -> List[int]:
         if check_board[0] == oppo or check_board[-1] == oppo:
-            return None
+            return []
+        codes = []
         board_status = check_board[1:-1] == player
         if np.sum(board_status) >= self.goal_chess_num - 2:
-            ids, = np.where(board_status == 0)
-            code = 1 + ids[0]
-            return code
-        return None
+            ids, = np.where(board_status == GAME_PLAYER.EMPTY)
+            codes.append(1 + ids[0])
+            if ids[0] == 1 or ids[0] == 2:
+                if check_board[ids[0] + 1] != oppo:
+                    codes.append(0)
+                    codes.append(len(check_board) - 1)
+        return codes
 
     def check_board_one_step_four(self, board, player, oppo):
         ids = None
         if player == GAME_PLAYER.PLAYER_ONE and np.sum(board) >= self.goal_chess_num - 2:
             ids, = np.where(board == GAME_PLAYER.EMPTY)
-        elif player == GAME_PLAYER.PLAYER_TWO and np.sum(board) <=  - (self.goal_chess_num - 2):
+        elif player == GAME_PLAYER.PLAYER_TWO and np.sum(board) <= -(self.goal_chess_num - 2):
             ids, = np.where(board == GAME_PLAYER.EMPTY)
         return ids
 
@@ -224,17 +240,28 @@ class ChessBoard(object):
         for x in range(row - self.goal_chess_num):
             for y in range(col):
                 check_board = board[x: x + self.goal_chess_num + 1, y]
-                code = self.check_board_livethree(check_board, player, oppo)
-                if code is not None and self.is_empty(x + code, y):
-                    four_in_line_steps.add((x + code, y))
+                codes = self.check_board_livethree(check_board, player, oppo)
+                if len(codes) > 0:
+                    for code in codes:
+                        if self.is_empty(x + code, y):
+                            if Debug:
+                                print("livefour1")
+                                print("x, y:", x, y, board[x: x + self.goal_chess_num + 1, y])
+                                print("player", player, oppo)
+                                print("codes:", codes)
+                            four_in_line_steps.add((x + code, y))
 
         # 2. 判断是否纵向连续五子
         for x in range(row):
             for y in range(col - self.goal_chess_num):
                 check_board = board[x, y: y + self.goal_chess_num + 1]
-                code = self.check_board_livethree(check_board, player, oppo)
-                if code is not None and self.is_empty(x, y + code):
-                    four_in_line_steps.add((x, y + code))
+                codes = self.check_board_livethree(check_board, player, oppo)
+                if len(codes) > 0:
+                    for code in codes:
+                        if self.is_empty(x, y + code):
+                            if Debug:
+                                print("livefour2")
+                            four_in_line_steps.add((x, y + code))
 
         # 3. 判断有斜五子
         for x in range(row - self.goal_chess_num):
@@ -243,17 +270,22 @@ class ChessBoard(object):
                 index_x = [x + delta for delta in range(self.goal_chess_num + 1)]
                 index_y = [y + delta for delta in range(self.goal_chess_num + 1)]
                 check_board = board[index_x, index_y]
-                code = self.check_board_livethree(check_board, player, oppo)
-                if code is not None and self.is_empty(x + code, y + code):
-                    four_in_line_steps.add((x + code, y + code))
+                codes = self.check_board_livethree(check_board, player, oppo)
+                if len(codes) > 0:
+                    for code in codes:
+                        if self.is_empty(x + code, y + code):
+                            four_in_line_steps.add((x + code, y + code))
 
                 # 判断是否有右上-左下的连续五子
                 index_x = [x + delta for delta in range(self.goal_chess_num + 1)]
                 index_y = [y + delta for delta in range(self.goal_chess_num, -1, -1)]
                 check_board = board[index_x, index_y]
-                code = self.check_board_livethree(check_board, player, oppo)
-                if code is not None and self.is_empty(x + code, y + self.goal_chess_num - code):
-                    four_in_line_steps.add((x + code, y + self.goal_chess_num - code))
+                codes = self.check_board_livethree(check_board, player, oppo)
+                if len(codes) > 0:
+                    for code in codes:
+                        if self.is_empty(x + code, y + self.goal_chess_num - code):
+                            four_in_line_steps.add((x + code, y + self.goal_chess_num - code))
+
         return list(four_in_line_steps)
 
     def is_player_winner(self, player, board, goal_num) -> Tuple[int, List]:
@@ -336,6 +368,7 @@ class ChessBoard(object):
             self.oppo_player = GAME_PLAYER.PLAYER_TWO
         return self.current_player
 
+    @property
     def shape(self):
         return self.board.shape
 
