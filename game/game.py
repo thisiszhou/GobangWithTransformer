@@ -1,7 +1,6 @@
 from game.base_board import ChessBoard
 from game.cons import GAME_PLAYER
 import numpy as np
-import multitasking
 from loguru import logger
 from collections import defaultdict
 import time
