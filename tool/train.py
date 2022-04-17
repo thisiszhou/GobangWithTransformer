@@ -67,7 +67,7 @@ def main():
                 sw = player_num["Transformer"]
                 win_rate = sw / (tw + sw)
                 logger.info(f"first win: {winner_num[0]}, second win: {winner_num[1]}, Teacher win: {tw} "
-                            f"Transformer win: {sw}, rate: {round(win_rate, 2) * 100}%, Transformer first win: "
+                            f"Transformer win: {sw}, rate: {round(win_rate * 100, 2)}%, Transformer first win: "
                             f"{win_model[0]}, Transformer second win: {win_model[1]}.")
             if cepoch % SAVE_MODEL_STEP == 0:
                 agent.save_model(MODEL_FILE_SAVE)
