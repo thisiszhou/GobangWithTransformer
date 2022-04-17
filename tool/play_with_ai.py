@@ -7,7 +7,7 @@ from user.beta.agent import ChessAI
 
 MODEL_FILE = "data/model_teacher_train.pkl"
 CHESSBOARD_SIZE = 15
-TRAIN = False
+TRAIN = True
 
 
 if __name__ == "__main__":
