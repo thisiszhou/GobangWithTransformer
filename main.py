@@ -1,4 +1,4 @@
-from chess_board.game import Game
+from game.game import Game
 import pygame
 from loguru import logger
 from user.random.rand import Rand

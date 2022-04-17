@@ -1,4 +1,4 @@
-from chess_board.base_board import ChessBoard
+from game.base_board import ChessBoard
 from user.transformer.net import Transformer
 from torch import Tensor
 from loguru import logger
@@ -38,11 +38,9 @@ class Transformer_Gobang(object):
     def predict(self, board, me, oppo):
         return self.model(Tensor(board), Tensor(me), Tensor(oppo))
 
-    def predict_step(self, chessboard: ChessBoard, rand_p=0.00, rule=True, first_random=True):
+    def predict_step(self, chessboard: ChessBoard, rule=True, first_random=True):
         if len(chessboard.steps) == 0 and first_random:
             return chessboard.get_random_first_step()
-        if self.training and random.random() < rand_p:
-            return Rand(chessboard)
 
         board, me, oppo = chessboard.get_last_pred_window_output()
         # print(f"----{len(chessboard.steps)}-----")

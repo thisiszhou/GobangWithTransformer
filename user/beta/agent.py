@@ -1,5 +1,5 @@
-from chess_board.cons import GAME_PLAYER
-from chess_board.base_board import ChessBoard
+from game.cons import GAME_PLAYER
+from game.base_board import ChessBoard
 import copy
 from enum import IntEnum
 import numpy as np

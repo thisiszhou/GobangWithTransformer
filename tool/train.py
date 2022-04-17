@@ -1,7 +1,7 @@
 import os
 import sys
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from chess_board.game import Game
+from game.game import Game
 from user.transformer.agent import Transformer_Gobang
 from user.beta.agent import ChessAI
 from loguru import logger
@@ -13,7 +13,7 @@ MODEL_FILE_LOAD = "data/model_teacher_train.pkl"
 MODEL_FILE_SAVE = "data/model_teacher_train.pkl"
 CHESSBOARD_SIZE = 15
 SHOW_LOSS_STEP = 4
-SAVE_MODEL_STEP = 4
+SAVE_MODEL_STEP = 20
 PROCESS = 4
 EPOCH = 100000
 
