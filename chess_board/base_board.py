@@ -368,6 +368,7 @@ class ChessBoard(object):
             self.oppo_player = GAME_PLAYER.PLAYER_TWO
         return self.current_player
 
+    @property
     def shape(self):
         return self.board.shape
 

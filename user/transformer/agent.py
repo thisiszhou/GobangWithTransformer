@@ -10,21 +10,30 @@ import random
 
 
 class Transformer_Gobang(object):
-    def __init__(self, chess_row, chess_col, train=True, model_file=None):
+    def __init__(self, chess_row, chess_col, model_file, train=True):
         self.chess_row = chess_row
         self.chess_col = chess_col
-        if model_file is None:
-            self.model = Transformer(5, 10, chess_row)
-            logger.info("Random init model!")
-        else:
+        if os.path.exists(model_file):
             self.model = torch.load(model_file)
             logger.info(f"Load model from {model_file}!")
+        else:
+            self.model = Transformer(5, 10, chess_row)
+            logger.info("Random init model!")
+            if not os.path.exists(os.path.dirname(model_file)):
+                os.mkdir(os.path.dirname(model_file))
         self.training = train
         if not train:
             self.model.eval()
         if train:
             self.model.train()
             self.optimizer = torch.optim.Adam(self.model.parameters(), lr=0.01)
+
+        # test multiprocess
+        self.process_num = 0
+
+    def add_process_num(self):
+        self.process_num += 1
+        print("process_num:", self.process_num)
 
     def predict(self, board, me, oppo):
         return self.model(Tensor(board), Tensor(me), Tensor(oppo))
