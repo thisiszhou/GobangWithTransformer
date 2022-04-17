@@ -152,14 +152,14 @@ class ChessBoard(object):
             if Debug:
                 print("certain_step2")
             return next_steps
-        # 3查看自己是否有冲四
+        # 3查看自己是否有活三
         next_steps = self.search_player_livefour_step(self.board, self.current_player, self.oppo_player)
         if len(next_steps) > 0:
             if Debug:
                 print("certain_step3")
             return next_steps
-        # 4查看对手是否有冲四、以及自己是否有冲五
-        next_steps = self.search_player_livefour_step(self.board, self.oppo_player, self.current_player)
+        # 4查看对手是否有活三、以及自己是否有半死三
+        next_steps = self.search_player_livefour_step(self.board, self.oppo_player, self.current_player, False)
         if len(next_steps) > 0:
             next_steps2 = self.search_player_one_side_four_step(self.board, self.current_player, self.oppo_player)
             if Debug:
@@ -168,7 +168,7 @@ class ChessBoard(object):
             return list(set(next_steps + next_steps2))
         return []
 
-    def check_board_livethree(self, check_board, player, oppo) -> List[int]:
+    def check_board_livethree(self, check_board, player, oppo, current=True) -> List[int]:
         if check_board[0] == oppo or check_board[-1] == oppo:
             return []
         codes = []
@@ -176,13 +176,14 @@ class ChessBoard(object):
         if np.sum(board_status) >= self.goal_chess_num - 2:
             ids, = np.where(board_status == GAME_PLAYER.EMPTY)
             codes.append(1 + ids[0])
-            if ids[0] == 1 or ids[0] == 2:
-                if check_board[ids[0] + 1] != oppo:
-                    codes.append(0)
-                    codes.append(len(check_board) - 1)
+            if not current:
+                if ids[0] == 1 or ids[0] == 2:
+                    if check_board[ids[0] + 1] != oppo:
+                        codes.append(0)
+                        codes.append(len(check_board) - 1)
         return codes
 
-    def check_board_one_step_four(self, board, player, oppo):
+    def check_board_one_step_four(self, board, player):
         ids = None
         if player == GAME_PLAYER.PLAYER_ONE and np.sum(board) >= self.goal_chess_num - 2:
             ids, = np.where(board == GAME_PLAYER.EMPTY)
@@ -197,7 +198,7 @@ class ChessBoard(object):
         for x in range(row - self.goal_chess_num + 1):
             for y in range(col):
                 check_board = board[x: x + self.goal_chess_num, y]
-                codes = self.check_board_one_step_four(check_board, player, oppo)
+                codes = self.check_board_one_step_four(check_board, player)
                 if codes is not None and len(codes) > 0:
                     for code in codes:
                         four_in_line_steps.add((x + code, y))
@@ -206,7 +207,7 @@ class ChessBoard(object):
         for x in range(row):
             for y in range(col - self.goal_chess_num + 1):
                 check_board = board[x, y: y + self.goal_chess_num]
-                codes = self.check_board_one_step_four(check_board, player, oppo)
+                codes = self.check_board_one_step_four(check_board, player)
                 if codes is not None and len(codes) > 0:
                     for code in codes:
                         four_in_line_steps.add((x, y + code))
@@ -218,7 +219,7 @@ class ChessBoard(object):
                 index_x = [x + delta for delta in range(self.goal_chess_num)]
                 index_y = [y + delta for delta in range(self.goal_chess_num)]
                 check_board = board[index_x, index_y]
-                codes = self.check_board_one_step_four(check_board, player, oppo)
+                codes = self.check_board_one_step_four(check_board, player)
                 if codes is not None and len(codes) > 0:
                     for code in codes:
                         four_in_line_steps.add((x + code, y + code))
@@ -227,13 +228,13 @@ class ChessBoard(object):
                 index_x = [x + delta for delta in range(self.goal_chess_num)]
                 index_y = [y + delta for delta in range(self.goal_chess_num - 1, -1, -1)]
                 check_board = board[index_x, index_y]
-                codes = self.check_board_one_step_four(check_board, player, oppo)
+                codes = self.check_board_one_step_four(check_board, player)
                 if codes is not None and len(codes) > 0:
                     for code in codes:
                         four_in_line_steps.add((x + code, y + self.goal_chess_num - 1 - code))
         return list(four_in_line_steps)
 
-    def search_player_livefour_step(self, board, player, oppo) -> List[Tuple[int, int]]:
+    def search_player_livefour_step(self, board, player, oppo, current=True) -> List[Tuple[int, int]]:
         row, col = board.shape
         four_in_line_steps = set()
 
@@ -241,7 +242,7 @@ class ChessBoard(object):
         for x in range(row - self.goal_chess_num):
             for y in range(col):
                 check_board = board[x: x + self.goal_chess_num + 1, y]
-                codes = self.check_board_livethree(check_board, player, oppo)
+                codes = self.check_board_livethree(check_board, player, oppo, current)
                 if len(codes) > 0:
                     for code in codes:
                         if self.is_empty(x + code, y):
@@ -256,7 +257,7 @@ class ChessBoard(object):
         for x in range(row):
             for y in range(col - self.goal_chess_num):
                 check_board = board[x, y: y + self.goal_chess_num + 1]
-                codes = self.check_board_livethree(check_board, player, oppo)
+                codes = self.check_board_livethree(check_board, player, oppo, current)
                 if len(codes) > 0:
                     for code in codes:
                         if self.is_empty(x, y + code):
@@ -271,7 +272,7 @@ class ChessBoard(object):
                 index_x = [x + delta for delta in range(self.goal_chess_num + 1)]
                 index_y = [y + delta for delta in range(self.goal_chess_num + 1)]
                 check_board = board[index_x, index_y]
-                codes = self.check_board_livethree(check_board, player, oppo)
+                codes = self.check_board_livethree(check_board, player, oppo, current)
                 if len(codes) > 0:
                     for code in codes:
                         if self.is_empty(x + code, y + code):
@@ -281,7 +282,7 @@ class ChessBoard(object):
                 index_x = [x + delta for delta in range(self.goal_chess_num + 1)]
                 index_y = [y + delta for delta in range(self.goal_chess_num, -1, -1)]
                 check_board = board[index_x, index_y]
-                codes = self.check_board_livethree(check_board, player, oppo)
+                codes = self.check_board_livethree(check_board, player, oppo, current)
                 if len(codes) > 0:
                     for code in codes:
                         if self.is_empty(x + code, y + self.goal_chess_num - code):
